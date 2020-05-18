@@ -12,6 +12,7 @@ import android.os.Process;
 import android.provider.MediaStore;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.view.ActionMode;
 import android.view.Menu;
@@ -40,6 +41,7 @@ import java.util.HashSet;
 public class ImageSelectActivity extends HelperActivity {
     private ArrayList<Image> images;
     private String album;
+    private long albumId;
 
     private TextView errorDisplay;
 
@@ -56,7 +58,7 @@ public class ImageSelectActivity extends HelperActivity {
     private Handler handler;
     private Thread thread;
 
-    private final String[] projection = new String[]{ MediaStore.Images.Media._ID, MediaStore.Images.Media.DISPLAY_NAME, MediaStore.Images.Media.DATA };
+    private final String[] projection = new String[]{MediaStore.Images.Media._ID, MediaStore.Images.Media.DISPLAY_NAME, MediaStore.Images.Media.DATA};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,8 +81,10 @@ public class ImageSelectActivity extends HelperActivity {
         Intent intent = getIntent();
         if (intent == null) {
             finish();
+            return;
         }
         album = intent.getStringExtra(Constants.INTENT_EXTRA_ALBUM);
+        albumId = intent.getLongExtra(Constants.INTENT_EXTRA_ALBUM_ID, 0);
 
         errorDisplay = (TextView) findViewById(R.id.text_view_error);
         errorDisplay.setVisibility(View.INVISIBLE);
@@ -253,7 +257,8 @@ public class ImageSelectActivity extends HelperActivity {
         }
 
         @Override
-        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {int i = item.getItemId();
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            int i = item.getItemId();
             if (i == R.id.menu_item_add_image) {
                 sendIntent();
                 return true;
@@ -343,20 +348,25 @@ public class ImageSelectActivity extends HelperActivity {
                     }
                 }
             }
-
-            Cursor cursor = getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection,
-                    MediaStore.Images.Media.BUCKET_DISPLAY_NAME + " =?", new String[]{ album }, MediaStore.Images.Media.DATE_ADDED);
+            Cursor cursor;
+            if (TextUtils.isEmpty(album)) {
+                cursor = getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection,
+                        MediaStore.Images.Media.BUCKET_ID + " =?", new String[]{String.valueOf(albumId)}, MediaStore.Images.Media.DATE_ADDED);
+            } else {
+                cursor = getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection,
+                        MediaStore.Images.Media.BUCKET_DISPLAY_NAME + " =?", new String[]{album}, MediaStore.Images.Media.DATE_ADDED);
+            }
             if (cursor == null) {
                 sendMessage(Constants.ERROR);
                 return;
             }
 
-            /*
-            In case this runnable is executed to onChange calling loadImages,
-            using countSelected variable can result in a race condition. To avoid that,
-            tempCountSelected keeps track of number of selected images. On handling
-            FETCH_COMPLETED message, countSelected is assigned value of tempCountSelected.
-             */
+        /*
+        In case this runnable is executed to onChange calling loadImages,
+        using countSelected variable can result in a race condition. To avoid that,
+        tempCountSelected keeps track of number of selected images. On handling
+        FETCH_COMPLETED message, countSelected is assigned value of tempCountSelected.
+         */
             int tempCountSelected = 0;
             ArrayList<Image> temp = new ArrayList<>(cursor.getCount());
             if (cursor.moveToLast()) {
@@ -390,6 +400,7 @@ public class ImageSelectActivity extends HelperActivity {
 
             sendMessage(Constants.FETCH_COMPLETED, tempCountSelected);
         }
+
     }
 
     private void startThread(Runnable runnable) {

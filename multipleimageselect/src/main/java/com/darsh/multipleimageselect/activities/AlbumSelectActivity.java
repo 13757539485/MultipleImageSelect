@@ -13,6 +13,7 @@ import android.os.Process;
 import android.provider.MediaStore;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.view.MenuItem;
 import android.view.View;
@@ -52,7 +53,7 @@ public class AlbumSelectActivity extends HelperActivity {
     private final String[] projection = new String[]{
             MediaStore.Images.Media.BUCKET_ID,
             MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
-            MediaStore.Images.Media.DATA };
+            MediaStore.Images.Media.DATA};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,8 +87,14 @@ public class AlbumSelectActivity extends HelperActivity {
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Album album = albums.get(position);
+                String folderName = album.name;
                 Intent intent = new Intent(getApplicationContext(), ImageSelectActivity.class);
-                intent.putExtra(Constants.INTENT_EXTRA_ALBUM, albums.get(position).name);
+                if (TextUtils.isEmpty(folderName)) {
+                    intent.putExtra(Constants.INTENT_EXTRA_ALBUM_ID, album.albumId);
+                } else {
+                    intent.putExtra(Constants.INTENT_EXTRA_ALBUM, folderName);
+                }
                 startActivityForResult(intent, Constants.REQUEST_CODE);
             }
         });
@@ -273,7 +280,7 @@ public class AlbumSelectActivity extends HelperActivity {
                          */
                         file = new File(image);
                         if (file.exists()) {
-                            temp.add(new Album(album, image));
+                            temp.add(new Album(albumId, album, image));
                             albumSet.add(albumId);
                         }
                     }

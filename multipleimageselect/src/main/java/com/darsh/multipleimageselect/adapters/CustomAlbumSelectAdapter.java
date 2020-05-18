@@ -1,6 +1,7 @@
 package com.darsh.multipleimageselect.adapters;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -39,10 +40,10 @@ public class CustomAlbumSelectAdapter extends CustomGenericAdapter<Album> {
 
         viewHolder.imageView.getLayoutParams().width = size;
         viewHolder.imageView.getLayoutParams().height = size;
-
-        viewHolder.textView.setText(arrayList.get(position).name);
+        Album item = getItem(position);
+        viewHolder.textView.setText(TextUtils.isEmpty(item.name) ? "/" : item.name);
         Glide.with(context)
-                .load(arrayList.get(position).cover)
+                .load(item.cover)
                 .placeholder(R.drawable.image_placeholder).centerCrop().into(viewHolder.imageView);
 
         return convertView;
